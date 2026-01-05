@@ -76,13 +76,6 @@ gvt -output ~/Downloads -url "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 
 3. Delete the repository folder
 
-## Development
-
-To rebuild after making changes:
-```bash
-docker build -t gonverter:latest .
-```
-
 ## Troubleshooting
 
 **"Docker is not installed" error:**
@@ -94,6 +87,3 @@ docker build -t gonverter:latest .
 **Command not found after installation:**
 - Make sure `~/.local/bin` is in your PATH (see installation step 3)
 
-## License
-
-MIT
