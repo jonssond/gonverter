@@ -107,6 +107,11 @@ INSTALL_DIR="${1:-$HOME/.local/bin}"
 # Create installation directory if it doesn't exist
 mkdir -p "$INSTALL_DIR"
 
+# Remove existing gvt (file or symlink) if it exists
+if [ -e "$INSTALL_DIR/gvt" ] || [ -L "$INSTALL_DIR/gvt" ]; then
+    rm -f "$INSTALL_DIR/gvt"
+fi
+
 # Copy the binary
 cp "$SCRIPT_DIR/gonverter" "$INSTALL_DIR/gvt"
 chmod +x "$INSTALL_DIR/gvt"
