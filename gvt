@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Gonverter Docker Wrapper Script
+# This script runs the gonverter application in a Docker container
+
+IMAGE_NAME="gonverter:latest"
+CONFIG_FILE="$HOME/.gonverter-config"
+
+# Check if Docker is installed
+if ! command -v docker &> /dev/null; then
+    echo "Error: Docker is not installed. Please install Docker first."
+    exit 1
+fi
+
+# Check if the Docker image exists, if not, build it
+if ! docker image inspect $IMAGE_NAME &> /dev/null; then
+    echo "Docker image not found. Building..."
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    
+    if [ ! -f "$SCRIPT_DIR/Dockerfile" ]; then
+        echo "Error: Dockerfile not found in $SCRIPT_DIR"
+        exit 1
+    fi
+    
+    docker build -t $IMAGE_NAME "$SCRIPT_DIR"
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to build Docker image"
+        exit 1
+    fi
+fi
+
+# Mount the home directory to persist config file
+# Also mount the current directory and any specified output directory
+docker run --rm \
+    -v "$HOME:$HOME" \
+    -v "$(pwd):$(pwd)" \
+    -w "$(pwd)" \
+    -e HOME="$HOME" \
+    $IMAGE_NAME "$@"
