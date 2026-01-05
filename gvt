@@ -31,47 +31,64 @@ fi
 
 # Parse arguments to find output directory
 OUTPUT_DIR=""
-for i in "$@"; do
-    if [[ "$i" == "-output" ]]; then
+NEXT_IS_OUTPUT=false
+for arg in "$@"; do
+    if [[ "$arg" == "-output" ]]; then
         NEXT_IS_OUTPUT=true
     elif [[ "$NEXT_IS_OUTPUT" == true ]]; then
-        OUTPUT_DIR="$i"
+        OUTPUT_DIR="$arg"
         break
     fi
 done
 
 # If no output specified in args, check saved config
 if [ -z "$OUTPUT_DIR" ] && [ -f "$CONFIG_FILE" ]; then
-    OUTPUT_DIR=$(cat "$CONFIG_FILE" | tr -d '\n\r')
+    OUTPUT_DIR=$(cat "$CONFIG_FILE" 2>/dev/null | tr -d '\n\r' | xargs)
 fi
 
-# Prepare volume mounts
-VOLUME_MOUNTS="-v \"$HOME:$HOME\""
+# Build volume mount arguments array
+VOLUME_ARGS=()
 
-# Mount the output directory if it exists and is different from HOME
+# Always mount HOME directory
+VOLUME_ARGS+=("-v" "$HOME:$HOME")
+
+# Mount the output directory if it exists and is not within HOME
 if [ -n "$OUTPUT_DIR" ]; then
     # Convert to absolute path
+    if [[ "$OUTPUT_DIR" != /* ]]; then
+        OUTPUT_DIR="$(pwd)/$OUTPUT_DIR"
+    fi
     OUTPUT_DIR=$(realpath -m "$OUTPUT_DIR" 2>/dev/null || echo "$OUTPUT_DIR")
     
     # Create the directory if it doesn't exist
     mkdir -p "$OUTPUT_DIR" 2>/dev/null
     
-    # Check if output dir is not already covered by HOME mount
+    # Mount if not already covered by HOME mount
     if [[ "$OUTPUT_DIR" != "$HOME"* ]]; then
-        VOLUME_MOUNTS="$VOLUME_MOUNTS -v \"$OUTPUT_DIR:$OUTPUT_DIR\""
+        VOLUME_ARGS+=("-v" "$OUTPUT_DIR:$OUTPUT_DIR")
     fi
 fi
 
-# Mount current directory if different from HOME and OUTPUT_DIR
-CURRENT_DIR=$(pwd)
-if [[ "$CURRENT_DIR" != "$HOME"* ]] && [[ "$CURRENT_DIR" != "$OUTPUT_DIR"* ]]; then
-    VOLUME_MOUNTS="$VOLUME_MOUNTS -v \"$CURRENT_DIR:$CURRENT_DIR\""
+# Mount current directory if not within HOME or OUTPUT_DIR
+CURRENT_DIR="$(pwd)"
+MOUNT_CURRENT=true
+
+if [[ "$CURRENT_DIR" == "$HOME"* ]]; then
+    MOUNT_CURRENT=false
 fi
 
-# Run the container
-eval docker run --rm \
-    $VOLUME_MOUNTS \
-    -w \"$CURRENT_DIR\" \
-    -e HOME=\"$HOME\" \
-    $IMAGE_NAME \
-    \"\$@\"
+if [ -n "$OUTPUT_DIR" ] && [[ "$CURRENT_DIR" == "$OUTPUT_DIR"* ]]; then
+    MOUNT_CURRENT=false
+fi
+
+if [ "$MOUNT_CURRENT" = true ]; then
+    VOLUME_ARGS+=("-v" "$CURRENT_DIR:$CURRENT_DIR")
+fi
+
+# Run the container with proper volume mounts
+docker run --rm \
+    "${VOLUME_ARGS[@]}" \
+    -w "$CURRENT_DIR" \
+    -e HOME="$HOME" \
+    "$IMAGE_NAME" \
+    "$@"
