@@ -1,11 +1,14 @@
 # Gonverter 🎵
 
-A simple YouTube to MP3 converter built with Go and Docker. No need to install yt-dlp or any dependencies manually!
+A simple YouTube to MP3 converter built with Go.
 
 ## Prerequisites
 
-- Docker installed on your system ([Get Docker](https://docs.docker.com/get-docker/))
-- Git (to clone the repository)
+- Go 1.23 or higher ([Get Go](https://golang.org/dl/))
+- The installer will check and optionally install:
+  - Python 3
+  - ffmpeg
+  - yt-dlp
 
 ## Installation
 
@@ -21,10 +24,10 @@ A simple YouTube to MP3 converter built with Go and Docker. No need to install y
    ./install.sh
    ```
 
-   This will:
-   - Build the Docker image with yt-dlp pre-installed
-   - Install the `gvt` command to `~/.local/bin/`
-   - Set up everything you need
+   The installer will:
+   - Check for required dependencies (Python 3, ffmpeg, yt-dlp)
+   - Offer to install missing dependencies automatically
+   - Build and install the `gvt` command to `~/.local/bin/`
 
 3. **Add to PATH (if needed):**
    
@@ -57,33 +60,53 @@ gvt -output ~/Downloads -url "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 
 ## How It Works
 
-- The `gvt` command is a wrapper script that runs your Go application inside a Docker container
-- The Docker container includes yt-dlp, ffmpeg, and all necessary dependencies
-- Your files are saved directly to your local filesystem (no need to copy from container)
+- The `gvt` command is a compiled Go binary that calls `yt-dlp`
+- Downloads are saved directly to your specified directory
 - Configuration is persisted in `~/.gonverter-config`
+
+## Manual Dependency Installation
+
+If automatic installation fails, install these manually:
+
+### Ubuntu/Debian
+```bash
+sudo apt-get update
+sudo apt-get install python3 python3-pip ffmpeg
+pip3 install --user yt-dlp
+```
+
+### Fedora
+```bash
+sudo dnf install python3 python3-pip ffmpeg
+pip3 install --user yt-dlp
+```
+
+### Arch Linux
+```bash
+sudo pacman -S python python-pip ffmpeg
+pip3 install --user yt-dlp
+```
+
+### macOS
+```bash
+brew install python3 ffmpeg
+pip3 install yt-dlp
+```
 
 ## Uninstall
 
-1. Remove the symlink:
-   ```bash
-   rm ~/.local/bin/gvt
-   ```
-
-2. Remove the Docker image:
-   ```bash
-   docker rmi gonverter:latest
-   ```
-
-3. Delete the repository folder
+```bash
+rm ~/.local/bin/gvt
+```
 
 ## Troubleshooting
 
-**"Docker is not installed" error:**
-- Install Docker from https://docs.docker.com/get-docker/
+**"go: command not found":**
+- Install Go from https://golang.org/dl/
+
+**"yt-dlp: command not found" after installation:**
+- Make sure `~/.local/bin` is in your PATH
+- Try: `pip3 install --user yt-dlp`
 
 **Permission denied:**
 - Make sure the install script is executable: `chmod +x install.sh`
-
-**Command not found after installation:**
-- Make sure `~/.local/bin` is in your PATH (see installation step 3)
-
