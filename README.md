@@ -11,7 +11,7 @@ A simple YouTube to MP3 converter built with Go and Docker. No need to install y
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/gonverter.git
+   git clone https://github.com/jonssond/gonverter.git
    cd gonverter
    ```
 
