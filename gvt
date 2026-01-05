@@ -29,11 +29,49 @@ if ! docker image inspect $IMAGE_NAME &> /dev/null; then
     fi
 fi
 
-# Mount the home directory to persist config file
-# Also mount the current directory and any specified output directory
-docker run --rm \
-    -v "$HOME:$HOME" \
-    -v "$(pwd):$(pwd)" \
-    -w "$(pwd)" \
-    -e HOME="$HOME" \
-    $IMAGE_NAME "$@"
+# Parse arguments to find output directory
+OUTPUT_DIR=""
+for i in "$@"; do
+    if [[ "$i" == "-output" ]]; then
+        NEXT_IS_OUTPUT=true
+    elif [[ "$NEXT_IS_OUTPUT" == true ]]; then
+        OUTPUT_DIR="$i"
+        break
+    fi
+done
+
+# If no output specified in args, check saved config
+if [ -z "$OUTPUT_DIR" ] && [ -f "$CONFIG_FILE" ]; then
+    OUTPUT_DIR=$(cat "$CONFIG_FILE" | tr -d '\n\r')
+fi
+
+# Prepare volume mounts
+VOLUME_MOUNTS="-v \"$HOME:$HOME\""
+
+# Mount the output directory if it exists and is different from HOME
+if [ -n "$OUTPUT_DIR" ]; then
+    # Convert to absolute path
+    OUTPUT_DIR=$(realpath -m "$OUTPUT_DIR" 2>/dev/null || echo "$OUTPUT_DIR")
+    
+    # Create the directory if it doesn't exist
+    mkdir -p "$OUTPUT_DIR" 2>/dev/null
+    
+    # Check if output dir is not already covered by HOME mount
+    if [[ "$OUTPUT_DIR" != "$HOME"* ]]; then
+        VOLUME_MOUNTS="$VOLUME_MOUNTS -v \"$OUTPUT_DIR:$OUTPUT_DIR\""
+    fi
+fi
+
+# Mount current directory if different from HOME and OUTPUT_DIR
+CURRENT_DIR=$(pwd)
+if [[ "$CURRENT_DIR" != "$HOME"* ]] && [[ "$CURRENT_DIR" != "$OUTPUT_DIR"* ]]; then
+    VOLUME_MOUNTS="$VOLUME_MOUNTS -v \"$CURRENT_DIR:$CURRENT_DIR\""
+fi
+
+# Run the container
+eval docker run --rm \
+    $VOLUME_MOUNTS \
+    -w \"$CURRENT_DIR\" \
+    -e HOME=\"$HOME\" \
+    $IMAGE_NAME \
+    \"\$@\"
