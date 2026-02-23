@@ -76,8 +76,7 @@ func main() {
 	fmt.Println("Output: ", *output)
 
 	cmd := exec.Command("yt-dlp",
-		"-x",
-		"--audio-format", "mp3",
+		"--format", "mp4",
 		"-o", outputDir+"/%(title)s.%(ext)s",
 		*url)
 
